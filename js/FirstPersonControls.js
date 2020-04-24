@@ -1,8 +1,11 @@
 // W S A D 的keycode
+
 const KEY_W = 87;
 const KEY_S = 83;
 const KEY_A = 65;
 const KEY_D = 68;
+let crash = false;
+let collideMeshList = [];
 
 class FirstPersonControls {
     constructor(camera, domElement) {
@@ -107,6 +110,62 @@ class FirstPersonControls {
         if (this.moveLeft || this.moveRight) {
             this.yawObject.translateX(moveSpeed * direction.x * delta);
         }
+
+        if (this.moveLeft || this.moveRight || this.moveForward || this.moveBackward) {
+            let originPoint = this.yawObject.position.clone();
+            crash = false;
+            // // var localVertex = this.yawObject.position.clone();
+            // // // 顶点经过变换后的坐标
+            if (originPoint.x <-240 || originPoint.x>240 || originPoint.z<-240 || originPoint.z>240)
+                crash = true;
+
+            // console.log(originPoint);
+            // // var globalVertex = localVertex.applyMatrix4(this.yawObject.matrix);
+            // // var directionVector = globalVertex.sub(this.yawObject.position);
+            // // console.log(direction);
+
+            // //     // 顶点原始坐标
+            // //     let localVertex = this.yawObject.position.clone();
+            // //     // 顶点经过变换后的坐标
+            // //     let globalVertex = localVertex.applyMatrix4(this.yawObject.matrix);
+            // //     let directionVector = globalVertex.sub(this.yawObject.position);
+            // //     console.log(directionVector.length());
+
+            else {
+                for (let Index = 0; Index < collideMeshList.length; Index++) {
+                    let tmpPos = collideMeshList[Index].position;
+                    let dir = Math.pow(Math.pow((originPoint.x - tmpPos.x), 2) + Math.pow((originPoint.z - tmpPos.z), 2), 0.5);
+                    console.log(dir);
+                    if (dir <= 15) {
+                        crash = true;
+                        break;
+                    }
+                }
+            }
+            //     // let ray = new THREE.Raycaster(originPoint, direction.normalize());
+            //     // console.log(direction.normalize());
+            //     // drawRay(scene, this.yawObject.position, ray);
+            //     // console.log(collideMeshList.length);
+            //     // let collisionResults = ray.intersectObjects(collideMeshList);
+            //     // console.log(collisionResults.length);
+            //     // if (collisionResults.length!==0)
+            //     //     console.log(collisionResults[0].distance);
+            //     // if (collisionResults.length > 0 && collisionResults[0].distance < 10) {
+            //     //     crash = true;
+            //     // }
+            //     // crash = false;
+
+            if (crash) {
+                console.log("Crash");
+                if (this.moveForward || this.moveBackward) {
+                    this.yawObject.translateZ(-moveSpeed * direction.z * delta);
+                }
+                if (this.moveLeft || this.moveRight) {
+                    this.yawObject.translateX(-moveSpeed * direction.x * delta);
+                }
+                document.getElementById('explode_sound').play()
+            }
+        }
     }
 
     connect() {
@@ -119,5 +178,14 @@ class FirstPersonControls {
         document.addEventListener('keydown', this.onKeyDown.bind(this), false);
         document.addEventListener('keyup', this.onKeyUp.bind(this), false);
     }
+}
+function drawRay(scene, start, dir) {
+    let prevRay = scene.getObjectByName("customRay");
+    if (prevRay) {
+        scene.remove(prevRay);
+    }
 
+    let arrow = new THREE.ArrowHelper(dir, start, 1000, 0x0000ff);
+    arrow.name = "customRay";
+    scene.add(arrow);
 }
